@@ -3,14 +3,16 @@ name: Pipeline
 # Stage 1, what you start with: every pull request and every push to main
 # builds the page into an image and checks it renders. Nothing is deployed yet.
 # LAB.md tells you what to add next.
-
+# controls when the workflow will run
 on:
+# workflow runs when there is a pull or push request to the main branch
   pull_request:
     branches: [main]
   push:
     branches: [main]
   workflow_dispatch:
-
+  
+#read only access granted on the repository 
 permissions:
   contents: read
 
@@ -18,15 +20,22 @@ env:
   IMAGE: ${{ vars.GCP_REGION }}-docker.pkg.dev/${{ vars.GCP_PROJECT }}/${{ vars.AR_REPO }}/frontend
 
 jobs:
+#the workflow contains a job called test
   test:
+  # the job is named build and smoke test
     name: Build and smoke test
+    # the job runs on a runner with Ubuntu OS
     runs-on: ubuntu-latest
+    # the job times out after 1o minutes
     timeout-minutes: 10
     steps:
+    # the first task of the repo. Checks-out your repository under $GITHUB_WORKSPACE
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+    # the credentials used in the job do not persist beyond this session
           persist-credentials: false
 
+    # task names stamp the page that runs a python script and uses external variables as input
       - name: Stamp the page
         env:
           TEAM: ${{ vars.TEAM }}
@@ -34,10 +43,11 @@ jobs:
           ACTOR: ${{ github.actor }}
           DEPLOY_ENV: ci
         run: python3 scripts/stamp.py
-
+# task named build the image that builds a docker image named test app
       - name: Build the image
         run: docker build -t frontend:test app
 
+#
       - name: Run it and check it answers
         run: |
           docker run -d --name web -p 8080:8080 frontend:test
